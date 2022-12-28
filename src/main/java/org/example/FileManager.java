@@ -16,6 +16,8 @@ public class FileManager {
      */
     private List<RequiredFile> filesList;
 
+    private String cycleFiles = "";
+
     public FileManager(String rootPath) throws IOException {
         root = new File(rootPath);
         filesList = new ArrayList<>();
@@ -92,6 +94,41 @@ public class FileManager {
     }
 
     private boolean isCorrectDirectives() {
+        boolean check = false;
+
+        for (var file : filesList) {
+            Map<String, Boolean> used = new HashMap<>();
+            for (var elem : filesList) {
+                used.put(elem.getFile().getAbsolutePath(), false);
+            }
+            for (var req : file.getRequired()) {
+                cycleFiles = file.getFile().getName();
+                check = check || isCycledRequire(used, file, req);
+                if (check) {
+                    break;
+                }
+            }
+            if (check) {
+                break;
+            }
+        }
+        return !check;
+    }
+
+    private boolean isCycledRequire(Map<String, Boolean> used, RequiredFile start, RequiredFile element) {
+//        System.out.println(used);
+//        System.out.println("\u001B[36m" + "check: (" + start.getFile().getName() + ", " + element.getFile().getName() + ")" + "\u001B[0m");
+        if (start.getFile().getAbsolutePath().equals(element.getFile().getAbsolutePath())) {
+            return true;
+        }
+        if (used.get(element.getFile().getAbsolutePath())) {
+            return false;
+        }
+        used.put(element.getFile().getAbsolutePath(), true);
+        for (var elem : element.getRequired()) {
+            cycleFiles += " -> " + elem.getFile().getName();
+            return isCycledRequire(used, start, elem);
+        }
         return false;
     }
 
@@ -102,8 +139,9 @@ public class FileManager {
      * @throws IOException
      */
     public void printAllFiles() throws IOException {
-        if (isCorrectDirectives()) {
+        if (!isCorrectDirectives()) {
             System.out.println("There is cycle in require sequence");
+            System.out.println(cycleFiles);
             return;
         }
         filesList.sort(RequiredFile::compareTo);
@@ -111,7 +149,7 @@ public class FileManager {
         StringBuilder result = new StringBuilder();
         for (var file : filesList) {
             try {
-                System.out.println("\u001B[32m" + (file.getFile().getAbsolutePath()) + "\u001B[0m");
+                System.out.println("\u001B[32m" + (file.getFile().getAbsolutePath()) + " require: " + file.getRequiredString() + "\u001B[0m");
                 var fr = new FileReader(file.getFile());
                 var reader = new BufferedReader(fr);
                 String line = reader.readLine();
@@ -124,6 +162,20 @@ public class FileManager {
             }
         }
         System.out.println(result);
+        File outputResult = new File(root.getAbsolutePath() + "/result.txt");
+        if (outputResult.createNewFile()) {
+            var fw = new FileWriter(outputResult);
+            var writer = new BufferedWriter(fw);
+            writer.write(result.toString());
+            writer.flush();
+            writer.close();
+        } else {
+            var fw = new FileWriter(outputResult);
+            var writer = new BufferedWriter(fw);
+            writer.write(result.toString());
+            writer.flush();
+            writer.close();
+        }
     }
 
     /**

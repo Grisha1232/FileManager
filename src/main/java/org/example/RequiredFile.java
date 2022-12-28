@@ -79,4 +79,12 @@ public class RequiredFile implements Comparable<RequiredFile> {
         required.add(req);
     }
 
+    public String getRequiredString() {
+        StringBuilder result = new StringBuilder();
+        for (var elem : required) {
+            result.append(elem.getFile().getName()).append(" ");
+        }
+        return result.toString();
+    }
+
 }
