@@ -164,13 +164,4 @@ public class FileManager {
         writer.close();
     }
 
-    /**
-     * Получение абсолютного пути к корневой папке.
-     *
-     * @return абсолютный путь до папки
-     */
-    public String getRoot() {
-        return root.getAbsolutePath();
-    }
-
 }
