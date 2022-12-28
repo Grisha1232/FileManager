@@ -1,45 +1,53 @@
 package org.example;
 
+import java.awt.image.AreaAveragingScaleFilter;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public class RequiredFile implements Comparable<RequiredFile> {
-    private File file;
-    private List<File> required;
+    private final File file;
+    private final List<RequiredFile> required;
 
     public RequiredFile(File file) {
         this.file = file;
-        required = null;
+        required = new ArrayList<>();
     }
-    public RequiredFile(File file, List<File> required) {
+
+    public RequiredFile(File file, List<RequiredFile> required) {
         this.file = file;
         this.required = required;
     }
 
+    /**
+     * Функция сравнение элементов
+     * @param other the object to be compared.
+     * @return отрицательное если должен находится левее в списке. 0 если равны. положительное если должен находится правее в списке.
+     */
     @Override
     public int compareTo(RequiredFile other) {
         if (required.isEmpty() && other.required.isEmpty()) {
             return file.getAbsolutePath().compareToIgnoreCase(other.file.getAbsolutePath());
         } else if (required.isEmpty()) {
             for (var req : other.required) {
-                if (req.getAbsolutePath().equals(file.getAbsolutePath())) {
+                if (req.file.getAbsolutePath().equals(file.getAbsolutePath())) {
                     return -1;
                 }
             }
         } else if (other.required.isEmpty()) {
             for (var req : required) {
-                if (req.getAbsolutePath().equals(other.file.getAbsolutePath())) {
+                if (req.file.getAbsolutePath().equals(other.file.getAbsolutePath())) {
                     return 1;
                 }
             }
         } else {
             for (var req : required) {
-                if (req.getAbsolutePath().equals(other.file.getAbsolutePath())) {
+                if (req.file.getAbsolutePath().equals(other.file.getAbsolutePath())) {
                     return 1;
                 }
             }
             for (var req : other.required) {
-                if (req.getAbsolutePath().equals(file.getAbsolutePath())) {
+                if (req.file.getAbsolutePath().equals(file.getAbsolutePath())) {
                     return -1;
                 }
             }
@@ -47,16 +55,28 @@ public class RequiredFile implements Comparable<RequiredFile> {
         return file.getAbsolutePath().compareToIgnoreCase(other.file.getAbsolutePath());
     }
 
+    /**
+     * Получение файла
+     * @return файл
+     */
     public File getFile() {
         return file;
     }
 
-    public String toStringRequired() {
-        StringBuilder result = new StringBuilder();
-        for (var file : required) {
-            result.append(file.getName()).append(" ");
-        }
-        return result.toString();
+    /**
+     * получение зависимостей файла
+     * @return зависимости
+     */
+    public List<RequiredFile> getRequired() {
+        return required;
+    }
+
+    /**
+     * Добавление зависимости файлу
+     * @param req
+     */
+    public void addRequire(RequiredFile req) {
+        required.add(req);
     }
 
 }
