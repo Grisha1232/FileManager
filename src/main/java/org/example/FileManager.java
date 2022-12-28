@@ -2,6 +2,8 @@ package org.example;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class FileManager {
     /**
@@ -11,7 +13,7 @@ public class FileManager {
     /**
      * Все файлы из корневой папки.
      */
-    private ArrayList<File> filesList;
+    private List<RequiredFile> filesList;
 
     public FileManager(String rootPath) throws IOException {
         root = new File(rootPath);
@@ -27,13 +29,36 @@ public class FileManager {
      *
      * @param path путь, по которому нужно получить все файлы
      */
-    private void getAllFiles(String path) {
-        File root = new File(path);
-        for (var file : root.listFiles()) {
+    private void getAllFiles(String path) throws IOException {
+        File localRoot = new File(path);
+        for (var file : localRoot.listFiles()) {
             if (file.isFile()) {
                 if (!file.getName().contains(".DS_Store")) {
-
-                    filesList.add(file);
+                    List<File> listRequired = new ArrayList<File>();
+                    Pattern pattern = Pattern.compile("require '.+'");
+                    var fr = new FileReader(file);
+                    var reader = new BufferedReader(fr);
+                    String line = reader.readLine();
+                    while (line != null) {
+                        Matcher matcher = pattern.matcher(line);
+                        while (matcher.find()) {
+                            var start = matcher.start();
+                            var end = matcher.end();
+                            String filePath = root.getAbsolutePath() + "/" + line.substring(start + 9, end - 1);
+                            if (!filePath.endsWith(".txt")) {
+                                filePath += ".txt";
+                            }
+                            File file1 = new File(filePath);
+                            if (!file1.isFile()) {
+                                System.out.println("\u001B[31m" + "В файле (" + file.getAbsolutePath() + ") указана неправильная директива. Директива (" + line.substring(start, end) + ") не будет использоваться" + "\u001B[0m");
+                            } else {
+                                System.out.println("\u001B[33m" + filePath + "\u001B[0m");
+                                listRequired.add(file1);
+                            }
+                        }
+                        line = reader.readLine();
+                    }
+                    filesList.add(new RequiredFile(file, listRequired));
                 }
             } else if (file.isDirectory()) {
                 getAllFiles(file.getAbsolutePath());
@@ -42,22 +67,29 @@ public class FileManager {
     }
 
     public void printAllFiles() throws IOException {
-        System.out.println("\u001B[32m" + root.getAbsolutePath() +  "\u001B[0m");
+
+        filesList.sort(RequiredFile::compareTo);
+        System.out.println("\u001B[32m" + root.getAbsolutePath() + "\u001B[0m");
+        StringBuilder result = new StringBuilder();
         for (var file : filesList) {
-            if (file.isFile()) {
-                try {
-                    System.out.println("\u001B[32m" + file.getName() +  "\u001B[0m");
-                    var fr = new FileReader(file);
-                    var reader = new BufferedReader(fr);
-                    String line = reader.readLine();
-                    while (line != null) {
-                        System.out.println(line);
-                        line = reader.readLine();
-                    }
-                } catch (IOException e) {
-                    throw e;
+            try {
+                System.out.println("\u001B[32m" + (file.getFile().getAbsolutePath()) + "\u001B[0m");
+                var fr = new FileReader(file.getFile());
+                var reader = new BufferedReader(fr);
+                String line = reader.readLine();
+                while (line != null) {
+                    result.append(line).append("\n");
+                    line = reader.readLine();
                 }
+            } catch (IOException e) {
+                throw e;
             }
         }
+        System.out.println(result);
     }
+
+    public String getRoot() {
+        return root.getAbsolutePath();
+    }
+
 }
