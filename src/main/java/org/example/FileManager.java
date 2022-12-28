@@ -9,12 +9,12 @@ public class FileManager {
     /**
      * Корневая папка.
      */
-    private File root;
+    private final File root;
 
     /**
      * Все файлы из корневой папки.
      */
-    private List<RequiredFile> filesList;
+    private final List<RequiredFile> filesList;
 
     private String cycleFiles = "";
 
@@ -34,7 +34,7 @@ public class FileManager {
      */
     private void getAllFiles(String path) throws IOException {
         File localRoot = new File(path);
-        for (var file : localRoot.listFiles()) {
+        for (var file : Objects.requireNonNull(localRoot.listFiles())) {
             if (file.isFile()) {
                 // Заглушка для непонятного файла на MACOS
                 if (!file.getName().contains(".DS_Store")) {
@@ -103,7 +103,7 @@ public class FileManager {
             }
             for (var req : file.getRequired()) {
                 cycleFiles = file.getFile().getName();
-                check = check || isCycledRequire(used, file, req);
+                check = isCycledRequire(used, file, req);
                 if (check) {
                     break;
                 }
@@ -116,8 +116,6 @@ public class FileManager {
     }
 
     private boolean isCycledRequire(Map<String, Boolean> used, RequiredFile start, RequiredFile element) {
-//        System.out.println(used);
-//        System.out.println("\u001B[36m" + "check: (" + start.getFile().getName() + ", " + element.getFile().getName() + ")" + "\u001B[0m");
         if (start.getFile().getAbsolutePath().equals(element.getFile().getAbsolutePath())) {
             return true;
         }
@@ -136,7 +134,7 @@ public class FileManager {
      * Вывод всех файлов. Сначала выведет в правильном порядке имена файлов (их абсолютные пути), затем выведет весь текст из этих файлов (в их правильном порядке).
      * Правильный порядок - это порядок в котором если файл А зависит от файла В, то файл А расположен ниже чем файл В, иначе в лексикографическом порядке имен файлов.
      *
-     * @throws IOException
+     * @throws IOException если что-то пошло не так (файл открыт другим пользователем или удалили)
      */
     public void printAllFiles() throws IOException {
         if (!isCorrectDirectives()) {
@@ -148,34 +146,22 @@ public class FileManager {
         System.out.println("\u001B[32m" + root.getAbsolutePath() + "\u001B[0m");
         StringBuilder result = new StringBuilder();
         for (var file : filesList) {
-            try {
-                System.out.println("\u001B[32m" + (file.getFile().getAbsolutePath()) + " require: " + file.getRequiredString() + "\u001B[0m");
-                var fr = new FileReader(file.getFile());
-                var reader = new BufferedReader(fr);
-                String line = reader.readLine();
-                while (line != null) {
-                    result.append(line).append("\n");
-                    line = reader.readLine();
-                }
-            } catch (IOException e) {
-                throw e;
+            System.out.println("\u001B[32m" + (file.getFile().getAbsolutePath()) + " require: " + file.getRequiredString() + "\u001B[0m");
+            var fr = new FileReader(file.getFile());
+            var reader = new BufferedReader(fr);
+            String line = reader.readLine();
+            while (line != null) {
+                result.append(line).append("\n");
+                line = reader.readLine();
             }
         }
         System.out.println(result);
-        File outputResult = new File(root.getAbsolutePath() + "/result.txt");
-        if (outputResult.createNewFile()) {
-            var fw = new FileWriter(outputResult);
-            var writer = new BufferedWriter(fw);
-            writer.write(result.toString());
-            writer.flush();
-            writer.close();
-        } else {
-            var fw = new FileWriter(outputResult);
-            var writer = new BufferedWriter(fw);
-            writer.write(result.toString());
-            writer.flush();
-            writer.close();
-        }
+        File outputResult = new File(root.getParentFile().getAbsolutePath() + "/result.txt");
+        var fw = new FileWriter(outputResult);
+        var writer = new BufferedWriter(fw);
+        writer.write(result.toString());
+        writer.flush();
+        writer.close();
     }
 
     /**
