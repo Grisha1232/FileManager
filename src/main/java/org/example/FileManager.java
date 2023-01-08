@@ -60,15 +60,44 @@ public class FileManager {
                         while (matcher.find()) {
                             var start = matcher.start();
                             var end = matcher.end();
-                            // Небольшая помощь в написании require (если не указано расширение, добавляет автоматически '.txt')
-                            String filePath = root.getAbsolutePath() + "/" + line.substring(start + 9, end - 1);
-                            if (!filePath.endsWith(".txt")) {
-                                filePath += ".txt";
+                            String filePath = root.getAbsolutePath() + "/";
+                            String fileName = "";
+                            if (line.substring(start + 9, end - 1).contains(File.separator)) {
+                                Pattern slashPattern = Pattern.compile(File.separator + ".*$");
+                                Matcher matSlash = slashPattern.matcher(line.substring(start + 9, end - 1));
+                                if (matSlash.find()){
+                                    var startSlash = matSlash.start();
+                                    filePath += line.substring(start + 9, end - 1).substring(0, startSlash + 1);
+                                    fileName = line.substring(start + 9, end - 1).substring(startSlash + 1);
+                                }
                             }
+
                             // Проверка на существование файла
-                            File checkFile = new File(filePath);
+                            File checkFile = new File(filePath + fileName);
                             if (!checkFile.isFile()) {
-                                System.out.println("\u001B[31m" + "В файле (" + file.getAbsolutePath() + ") указана неправильная директива. Директива (" + line.substring(start, end) + ") не будет использоваться" + "\u001B[0m");
+                                checkFile = new File(filePath);
+                                boolean founded = false;
+                                for (var fileC : Objects.requireNonNull(checkFile.listFiles())) {
+                                    if (fileC.getName().substring(0, fileC.getName().indexOf(".")).equals(fileName)) {
+                                        isAlreadyCreated = false;
+                                        for (var elem : filesList) {
+                                            if (elem.getFile().getAbsolutePath().equals(fileC.getAbsolutePath())) {
+                                                isAlreadyCreated = true;
+                                                reqFile.addRequire(elem);
+                                            }
+                                        }
+                                        if (!isAlreadyCreated) {
+                                            RequiredFile reqNewFile = new RequiredFile(fileC);
+                                            reqFile.addRequire(reqNewFile);
+                                            filesList.add(reqNewFile);
+                                        }
+                                        founded = true;
+                                        break;
+                                    }
+                                }
+                                if (!founded) {
+                                    System.out.println("\u001B[31m" + "В файле (" + file.getAbsolutePath() + ") указана неправильная директива. Директива (" + line.substring(start, end) + ") не будет использоваться" + "\u001B[0m");
+                                }
                             } else {
                                 isAlreadyCreated = false;
                                 for (var elem : filesList) {
